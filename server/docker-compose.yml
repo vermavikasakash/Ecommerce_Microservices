@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # API Gateway
   gateway:
@@ -34,6 +32,9 @@ services:
     environment:
       - PORT=8081
       - DEV_MODE=development
+      - MONGODB_URI=mongodb://mongodb:27017/ecommerce
+    depends_on:
+      - mongodb
     networks:
       - ecommerce
 
@@ -48,8 +49,10 @@ services:
       - PORT=8082
       - DEV_MODE=development
       - PRODUCT_SERVICE_URL=http://product-service:8081
+      - MONGODB_URI=mongodb://mongodb:27017/ecommerce
     depends_on:
       - product-service
+      - mongodb
     networks:
       - ecommerce
 
@@ -65,9 +68,11 @@ services:
       - DEV_MODE=development
       - CART_SERVICE_URL=http://cart-service:8082
       - PAYMENT_SERVICE_URL=http://payment-service:8084
+      - MONGODB_URI=mongodb://mongodb:27017/ecommerce
     depends_on:
       - cart-service
       - payment-service
+      - mongodb
     networks:
       - ecommerce
 
@@ -81,8 +86,24 @@ services:
     environment:
       - PORT=8084
       - DEV_MODE=development
+      - MONGODB_URI=mongodb://mongodb:27017/ecommerce
+    depends_on:
+      - mongodb
     networks:
       - ecommerce
+  # MongoDB
+  mongodb:
+    image: mongo:7
+    container_name: mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    networks:
+      - ecommerce
+
+volumes:
+  mongo-data:
 
 networks:
   ecommerce:
