@@ -1,14 +1,10 @@
-const { env } = require('../config/env.js');
+const { publishEvent } = require("./rabbitmq");
 
 const publishRealtimeEvent = async (eventName, payload) => {
   try {
-    await fetch(`${env.gatewayUrl}/internal/events`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ eventName, payload }),
-    });
+    await publishEvent(eventName, payload);
   } catch (err) {
-    console.warn(`Unable to publish realtime event ${eventName}: ${err.message}`);
+    console.warn(`Unable to publish RabbitMQ event ${eventName}: ${err.message}`);
   }
 };
 

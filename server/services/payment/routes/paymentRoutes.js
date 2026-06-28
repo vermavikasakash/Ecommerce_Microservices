@@ -1,6 +1,5 @@
 const express = require("express");
 const { asyncHandler } = require("../../shared/utils/asyncHandler");
-const eventBus = require("../../shared/utils/eventBus");
 const { DummyPaymentProvider } = require("../providers/DummyPaymentProvider");
 const { PaymentService } = require("../services/PaymentService");
 const { publishRealtimeEvent } = require("../../shared/utils/realtimePublisher");
@@ -22,7 +21,6 @@ paymentRouter.post("/charge", asyncHandler(async (req, res) => {
   const payment = await paymentService.collectPayment({ amount, customer, method });
 
   const payload = { customerId: customer.customerId, orderId: null, payment };
-  eventBus.publish('payment.completed', payload);
   publishRealtimeEvent('payment.completed', payload);
 
   res.status(200).send({ success: true, message: 'Payment processed successfully', payment });
@@ -47,7 +45,6 @@ paymentRouter.post('/razorpay/verify', (req, res) => {
   }
 
   const payload = { customerId: req.header('x-customer-id') || 'guest-customer', orderId: razorpay_order_id, payment: { id: razorpay_payment_id } };
-  eventBus.publish('payment.completed', payload);
   publishRealtimeEvent('payment.completed', payload);
 
   res.json({ verified: true, paymentId: razorpay_payment_id, orderId: razorpay_order_id });

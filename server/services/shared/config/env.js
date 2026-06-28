@@ -7,6 +7,10 @@ const env = {
   mode: process.env.DEV_MODE || process.env.NODE_ENV || "development",
   clientOrigin: process.env.CLIENT_ORIGIN || "http://localhost:3000",
   gatewayUrl: process.env.GATEWAY_URL || "http://localhost:8080",
+  rabbitmq: {
+    url: process.env.RABBITMQ_URL || "amqp://localhost:5672",
+    exchange: process.env.RABBITMQ_EXCHANGE || "ecommerce.events",
+  },
   serviceUrls: {
     products: process.env.PRODUCT_SERVICE_URL || "http://localhost:8081",
     cart: process.env.CART_SERVICE_URL || "http://localhost:8082",

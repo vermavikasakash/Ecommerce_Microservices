@@ -170,19 +170,6 @@ const createApp = () => {
     res.status(200).send(data);
   }));
 
-  // Internal events endpoint - services can post realtime events here
-  app.post('/internal/events', (req, res) => {
-    const { eventName, payload } = req.body || {};
-    if (!eventName) return res.status(400).send({ success: false, message: 'eventName required' });
-    try {
-      const eventBus = require('../shared/utils/eventBus');
-      eventBus.publish(eventName, payload || {});
-      return res.status(200).send({ success: true });
-    } catch (err) {
-      return res.status(500).send({ success: false, message: err.message });
-    }
-  });
-
   // Error handler middleware
   app.use(errorHandler);
 

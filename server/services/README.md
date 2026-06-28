@@ -47,6 +47,9 @@ This project has been converted into a distributed microservices architecture wi
 ## Architecture Features
 
 - **Service-to-Service Communication**: Uses HTTP requests with the `makeServiceRequest` utility
+- **Async Events**: Uses RabbitMQ for cart, order, and payment events
+- **Client Realtime Updates**: Gateway consumes RabbitMQ events and pushes them to the browser with Socket.io
+- **Reverse Proxy**: Docker Compose includes nginx in front of the API Gateway
 - **Customer Context**: Each request includes `x-customer-id` header for multi-tenant support
 - **Error Handling**: Centralized error handler for consistent error responses
 - **Shared Utilities**: Common middleware, configs, and utilities in `services/shared/`
@@ -110,6 +113,8 @@ PORT=8080
 DEV_MODE=development
 CLIENT_ORIGIN=http://localhost:3000
 GATEWAY_URL=http://localhost:8080
+RABBITMQ_URL=amqp://localhost:5672
+RABBITMQ_EXCHANGE=ecommerce.events
 
 # Service URLs
 PRODUCT_SERVICE_URL=http://localhost:8081
@@ -197,6 +202,14 @@ const product = await makeServiceRequest(
 );
 ```
 
+Async events are published through RabbitMQ using `publishRealtimeEvent`:
+
+```javascript
+const { publishRealtimeEvent } = require("../../shared/utils/realtimePublisher");
+
+await publishRealtimeEvent("order.created", { customerId, order });
+```
+
 ## Customer Context
 
 All services use the `x-customer-id` header to identify customers:
@@ -223,11 +236,11 @@ Example response:
 ## Future Enhancements
 
 1. **Database Integration**: Replace in-memory storage with MongoDB
-2. **Message Queue**: Add RabbitMQ/Kafka for async communication
+2. **Message Queue Consumers**: Add more RabbitMQ consumers for inventory, email, and analytics
 3. **Service Discovery**: Implement Consul or similar
-4. **Load Balancing**: Add Nginx for load distribution
+4. **Load Balancing**: Add more service replicas behind nginx
 5. **Docker**: Create Dockerfile and docker-compose for containerization
-6. **Real-time Events**: Add Socket.io integration for live updates
+6. **Real-time Events**: Expand Socket.io client notifications backed by RabbitMQ events
 7. **API Documentation**: Add Swagger/OpenAPI documentation
 8. **Logging**: Add structured logging with Winston or Bunyan
 9. **Monitoring**: Add Prometheus metrics and Grafana dashboards

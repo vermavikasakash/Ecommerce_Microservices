@@ -1,13 +1,13 @@
 const http = require("http");
 require("colors");
 const { createApp } = require("./gateway-app");
-const { attachSocketServer } = require("./realtime/socketServer");
+const { attachClientRealtimeGateway } = require("./realtime/clientRealtimeGateway");
 const { env } = require("../shared/config/env");
 
 const app = createApp();
 const server = http.createServer(app);
 
-attachSocketServer(server);
+attachClientRealtimeGateway(server);
 
 server.listen(env.port, (err) => {
   if (err) console.log(err);

@@ -1,5 +1,6 @@
 const { env } = require("../../shared/config/env");
 const { makeServiceRequest } = require("../../shared/utils/makeServiceRequest");
+const { publishRealtimeEvent } = require("../../shared/utils/realtimePublisher");
 
 class CartService {
   constructor(cartRepository) {
@@ -87,6 +88,10 @@ class CartService {
       total: cart.items.reduce((sum, item) => sum + item.lineTotal, 0),
     };
     const savedCart = await this.cartRepository.save(nextCart);
+    await publishRealtimeEvent("cart.updated", {
+      customerId: savedCart.customerId,
+      cart: savedCart,
+    });
 
     return savedCart;
   }

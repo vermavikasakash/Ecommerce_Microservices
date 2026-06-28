@@ -59,7 +59,7 @@
 - [x] Async handler wrapper
 - [x] Service app factory
 - [x] Inter-service HTTP client (makeServiceRequest)
-- [x] Event bus for future use
+- [x] RabbitMQ publisher and consumer utilities
 
 ### Configuration & Deployment
 - [x] Updated package.json with microservice scripts
@@ -113,6 +113,8 @@
 - [ ] Build containers: `docker-compose up --build`
 - [ ] All containers start successfully
 - [ ] Services communicate with each other
+- [ ] RabbitMQ event flow works for cart, order, and payment events
+- [ ] Nginx proxies requests to the API Gateway
 - [ ] Gateway routes requests correctly
 
 ## 🔄 Service Dependencies Flow
@@ -201,10 +203,11 @@ server/
 - [ ] Add database connection pooling
 
 ### Phase 3: Advanced Features
-- [ ] Message queue (RabbitMQ/Kafka)
+- [x] Message queue (RabbitMQ)
 - [ ] Service discovery
-- [ ] Real-time notifications (Socket.io)
-- [ ] Load balancing
+- [x] Real-time notifications (Socket.io backed by RabbitMQ)
+- [x] Nginx reverse proxy
+- [ ] Load balancing with multiple service replicas
 - [ ] Caching layer (Redis)
 
 ### Phase 4: Production Ready

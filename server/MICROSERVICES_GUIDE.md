@@ -104,7 +104,8 @@ API Gateway (Port 8080) - Central routing hub
 #### Utils
 - `utils/asyncHandler.js` - Wrap async controllers to catch errors
 - `utils/createServiceApp.js` - Factory function to create Express apps
-- `utils/eventBus.js` - Event emitter for service communication
+- `utils/rabbitmq.js` - RabbitMQ publisher and consumer helpers for async events
+- `utils/realtimePublisher.js` - Publishes cart, order, and payment events to RabbitMQ
 - `utils/makeServiceRequest.js` - HTTP client for inter-service communication
 
 ### 4. Configuration
@@ -115,6 +116,8 @@ PORT=8080
 DEV_MODE=development
 CLIENT_ORIGIN=http://localhost:3000
 GATEWAY_URL=http://localhost:8080
+RABBITMQ_URL=amqp://localhost:5672
+RABBITMQ_EXCHANGE=ecommerce.events
 
 PRODUCT_SERVICE_URL=http://localhost:8081
 PRODUCT_SERVICE_PORT=8081
@@ -202,6 +205,8 @@ npm start
 docker-compose up --build
 ```
 
+In Docker mode, nginx listens on http://localhost and proxies to the API Gateway. RabbitMQ is available on AMQP port 5672 and the management UI on http://localhost:15672.
+
 ## 📊 Data Flow Examples
 
 ### Example 1: Fetch Products
@@ -260,6 +265,14 @@ const result = await makeServiceRequest(
   null,                      // Request body (null for GET)
   customerId                 // Customer context header
 );
+```
+
+Services publish async events through RabbitMQ:
+
+```javascript
+const { publishRealtimeEvent } = require("../../shared/utils/realtimePublisher");
+
+await publishRealtimeEvent("cart.updated", { customerId, cart });
 ```
 
 ## 🔐 Customer Context
@@ -382,10 +395,8 @@ async findByCustomerId(customerId) {
 }
 ```
 
-### 2. Message Queue (RabbitMQ/Kafka)
-For async inter-service communication:
-- Order Service publishes "order.created" event
-- Other services subscribe and react
+### 2. Message Queue Consumers
+RabbitMQ is configured for async events. Add consumers for inventory, email, analytics, or fulfillment workflows.
 
 ### 3. Service Discovery
 Use Consul, Eureka, or built-in Docker DNS:
@@ -393,12 +404,10 @@ Use Consul, Eureka, or built-in Docker DNS:
 - Gateway dynamically discovers service URLs
 
 ### 4. Load Balancing
-Add Nginx/HAProxy:
-- Distribute requests across service instances
-- Health checks and failover
+Nginx is configured as the reverse proxy. Add service replicas and upstream health checks for load balancing and failover.
 
 ### 5. Real-time Features
-Integrate Socket.io:
+RabbitMQ is the internal event backbone. The API Gateway consumes those events and uses Socket.io only for browser-facing notifications:
 - Live cart updates
 - Order status notifications
 - Real-time payment confirmations

@@ -1,5 +1,6 @@
 const { env } = require("../../shared/config/env");
 const { makeServiceRequest } = require("../../shared/utils/makeServiceRequest");
+const { publishRealtimeEvent } = require("../../shared/utils/realtimePublisher");
 
 class OrderService {
   constructor(orderRepository) {
@@ -70,6 +71,11 @@ class OrderService {
       null,
       customerId
     );
+
+    await publishRealtimeEvent("order.created", {
+      customerId,
+      order,
+    });
 
     return order;
   }
