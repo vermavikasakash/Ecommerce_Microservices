@@ -1,3 +1,4 @@
+name: e-commerce
 services:
   # Nginx reverse proxy
   nginx:
@@ -9,10 +10,12 @@ services:
     depends_on:
       - gateway
     networks:
-      - ecommerce
+      - ecommerce-network
 
   # API Gateway
   gateway:
+    image: ecommerce-gateway
+    container_name: ecommerce-gateway
     build:
       context: .
       dockerfile: Dockerfile.gateway
@@ -25,19 +28,24 @@ services:
       - CART_SERVICE_URL=http://cart-service:8082
       - ORDER_SERVICE_URL=http://order-service:8083
       - PAYMENT_SERVICE_URL=http://payment-service:8084
+      - AUTH_SERVICE_URL=http://auth-service:8085
       - CLIENT_ORIGIN=http://localhost:3000
       - RABBITMQ_URL=amqp://rabbitmq:5672
+      - JWT_SECRET=${JWT_SECRET:-change-this-secret}
     depends_on:
       - product-service
       - cart-service
       - order-service
       - payment-service
+      - auth-service
       - rabbitmq
     networks:
-      - ecommerce
+      - ecommerce-network
 
   # Product Service
   product-service:
+    image: ecommerce-product-service
+    container_name: ecommerce-product-service
     build:
       context: .
       dockerfile: Dockerfile.product
@@ -50,10 +58,12 @@ services:
     depends_on:
       - mongodb
     networks:
-      - ecommerce
+      - ecommerce-network
 
   # Cart Service
   cart-service:
+    image: ecommerce-cart-service
+    container_name: ecommerce-cart-service
     build:
       context: .
       dockerfile: Dockerfile.cart
@@ -70,10 +80,12 @@ services:
       - mongodb
       - rabbitmq
     networks:
-      - ecommerce
+      - ecommerce-network
 
   # Order Service
   order-service:
+    image: ecommerce-order-service
+    container_name: ecommerce-order-service
     build:
       context: .
       dockerfile: Dockerfile.order
@@ -92,10 +104,12 @@ services:
       - mongodb
       - rabbitmq
     networks:
-      - ecommerce
+      - ecommerce-network
 
   # Payment Service
   payment-service:
+    image: ecommerce-payment-service
+    container_name: ecommerce-payment-service
     build:
       context: .
       dockerfile: Dockerfile.payment
@@ -110,35 +124,54 @@ services:
       - mongodb
       - rabbitmq
     networks:
-      - ecommerce
+      - ecommerce-network
+
+  # Auth Service
+  auth-service:
+    image: ecommerce-auth-service
+    container_name: ecommerce-auth-service
+    build:
+      context: .
+      dockerfile: Dockerfile.auth
+    ports:
+      - "8085:8085"
+    environment:
+      - PORT=8085
+      - DEV_MODE=development
+      - MONGODB_URI=mongodb://mongodb:27017/ecommerce
+      - JWT_SECRET=${JWT_SECRET:-change-this-secret}
+    depends_on:
+      - mongodb
+    networks:
+      - ecommerce-network
 
   # RabbitMQ message broker
   rabbitmq:
-    image: rabbitmq:3-management-alpine
-    container_name: rabbitmq
+    image: rabbitmq:3-management
+    container_name: ecommerce-rabbitmq
     ports:
       - "5672:5672"
       - "15672:15672"
     volumes:
       - rabbitmq-data:/var/lib/rabbitmq
     networks:
-      - ecommerce
+      - ecommerce-network
 
   # MongoDB
   mongodb:
-    image: mongo:7
-    container_name: mongodb
+    image: mongo:8
+    container_name: ecommerce-mongodb
     ports:
       - "27017:27017"
     volumes:
       - mongo-data:/data/db
     networks:
-      - ecommerce
+      - ecommerce-network
 
 volumes:
   mongo-data:
   rabbitmq-data:
 
 networks:
-  ecommerce:
+  ecommerce-network:
     driver: bridge

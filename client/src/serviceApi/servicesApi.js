@@ -2,28 +2,63 @@ import axios from "axios";
 
 const API_BASE_URL = process.env.REACT_APP_API || "http://localhost:8080";
 const CUSTOMER_KEY = "ecommerce_customer_id";
+const AUTH_USER_KEY = "ecommerce_auth_user";
+const AUTH_TOKEN_KEY = "ecommerce_auth_token";
 
 const getCustomerId = () => {
-  const existingCustomerId = localStorage.getItem(CUSTOMER_KEY);
-  if (existingCustomerId) return existingCustomerId;
+  const authUser = getAuthUser();
+  if (authUser?.id) return authUser.id;
 
-  const customerId = `web_${Date.now()}`;
-  localStorage.setItem(CUSTOMER_KEY, customerId);
-  return customerId;
+  return localStorage.getItem(CUSTOMER_KEY);
+};
+
+const getAuthToken = () => localStorage.getItem(AUTH_TOKEN_KEY);
+
+const getAuthUser = () => {
+  const rawUser = localStorage.getItem(AUTH_USER_KEY);
+  if (!rawUser) return null;
+
+  try {
+    return JSON.parse(rawUser);
+  } catch {
+    localStorage.removeItem(AUTH_USER_KEY);
+    return null;
+  }
+};
+
+const saveAuthSession = ({ user, token }) => {
+  localStorage.setItem(AUTH_USER_KEY, JSON.stringify(user));
+  localStorage.setItem(AUTH_TOKEN_KEY, token);
+  localStorage.setItem(CUSTOMER_KEY, user.id);
+  return user;
+};
+
+const clearAuthUser = () => {
+  localStorage.removeItem(AUTH_USER_KEY);
+  localStorage.removeItem(AUTH_TOKEN_KEY);
+  localStorage.removeItem(CUSTOMER_KEY);
 };
 
 const apiClient = axios.create({
   baseURL: `${API_BASE_URL}/api`,
 });
 
-apiClient.interceptors.request.use((config) => ({
-  ...config,
-  headers: {
-    ...config.headers,
-    "x-customer-id": getCustomerId(),
-  },
-}));
+apiClient.interceptors.request.use((config) => {
+  const customerId = getCustomerId();
+  const token = getAuthToken();
 
+  return {
+    ...config,
+    headers: {
+      ...config.headers,
+      ...(customerId ? { "x-customer-id": customerId } : {}),
+      ...(token ? { authorization: `Bearer ${token}` } : {}),
+    },
+  };
+});
+
+const loginFunction = (email, password) => apiClient.post("/auth/login", { email, password });
+const signupFunction = (email, password) => apiClient.post("/auth/signup", { email, password });
 const getProductsFunction = () => apiClient.get("/products");
 const getCartFunction = () => apiClient.get("/cart");
 const addCartItemFunction = (productId, quantity = 1) =>
@@ -37,7 +72,13 @@ const getOrdersFunction = () => apiClient.get("/orders");
 
 export {
   API_BASE_URL,
+  clearAuthUser,
+  getAuthUser,
+  getAuthToken,
   getCustomerId,
+  saveAuthSession,
+  loginFunction,
+  signupFunction,
   getProductsFunction,
   getCartFunction,
   addCartItemFunction,

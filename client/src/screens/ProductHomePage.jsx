@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Button, Spinner } from "react-bootstrap";
 import { FiShoppingCart } from "react-icons/fi";
+import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import Layout from "../components/Layout/Layout";
 import { useGlobalData } from "../context/contextApiProvider";
@@ -9,7 +10,8 @@ import { getProductsFunction } from "../serviceApi/servicesApi";
 const ProductHomePage = () => {
   const [loader, setLoader] = useState(false);
   const [products, setProducts] = useState([]);
-  const { addToCart } = useGlobalData();
+  const navigate = useNavigate();
+  const { addToCart, isAuthenticated, queueCartItemAfterAuth } = useGlobalData();
 
   const getProducts = async () => {
     try {
@@ -26,6 +28,16 @@ const ProductHomePage = () => {
   useEffect(() => {
     getProducts();
   }, []);
+
+  const handleAddToCart = async (product) => {
+    if (!isAuthenticated) {
+      queueCartItemAfterAuth(product);
+      navigate("/auth", { state: { from: "/", intent: "add-to-cart" } });
+      return;
+    }
+
+    await addToCart(product);
+  };
 
   return (
     <Layout>
@@ -59,7 +71,7 @@ const ProductHomePage = () => {
                       <strong>&#8377;{product.price}</strong>
                       <span>{product.stock} in stock</span>
                     </div>
-                    <Button onClick={() => addToCart(product)} title="Add to cart">
+                    <Button onClick={() => handleAddToCart(product)} title="Add to cart">
                       <FiShoppingCart aria-hidden="true" />
                     </Button>
                   </div>

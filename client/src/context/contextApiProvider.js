@@ -1,14 +1,19 @@
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 import { toast } from "react-toastify";
 import {
   addCartItemFunction,
+  clearAuthUser,
   createOrderFunction,
+  getAuthUser,
   getCartFunction,
   getOrdersFunction,
+  loginFunction,
   removeCartItemFunction,
+  saveAuthSession,
+  signupFunction,
   updateCartItemFunction,
 } from "../serviceApi/servicesApi";
-import { getSocket } from "../serviceApi/socketClient";
+import { getSocket, reconnectSocket } from "../serviceApi/socketClient";
 
 const ContextApi = createContext();
 
@@ -17,10 +22,15 @@ const emptyCart = {
   total: 0,
 };
 
+const PENDING_CART_ITEM_KEY = "ecommerce_pending_cart_item";
+
 const ContextProvider = ({ children }) => {
   const [cart, setCart] = useState(emptyCart);
   const [orders, setOrders] = useState([]);
   const [realtimeStatus, setRealtimeStatus] = useState("connecting");
+  const [authUser, setAuthUser] = useState(() => getAuthUser());
+
+  const isAuthenticated = Boolean(authUser);
 
   const refreshCart = async () => {
     const result = await getCartFunction();
@@ -36,6 +46,49 @@ const ContextProvider = ({ children }) => {
     const result = await addCartItemFunction(product.id, 1);
     setCart(result.data.cart);
     toast.success("Item added to cart");
+  };
+
+  const queueCartItemAfterAuth = (product) => {
+    localStorage.setItem(PENDING_CART_ITEM_KEY, JSON.stringify({ productId: product.id }));
+  };
+
+  const consumePendingCartItem = async () => {
+    const rawItem = localStorage.getItem(PENDING_CART_ITEM_KEY);
+    if (!rawItem) return;
+
+    localStorage.removeItem(PENDING_CART_ITEM_KEY);
+
+    try {
+      const pendingItem = JSON.parse(rawItem);
+      if (!pendingItem?.productId) return;
+      const result = await addCartItemFunction(pendingItem.productId, 1);
+      setCart(result.data.cart);
+      toast.success("Item added to cart");
+    } catch (err) {
+      toast.error("Unable to add pending cart item");
+    }
+  };
+
+  const loginOrSignup = async ({ email, password, mode }) => {
+    const result =
+      mode === "signup"
+        ? await signupFunction(email, password)
+        : await loginFunction(email, password);
+    const user = saveAuthSession(result.data);
+    setAuthUser(user);
+    reconnectSocket();
+    await refreshCart();
+    await refreshOrders();
+    await consumePendingCartItem();
+    return user;
+  };
+
+  const logout = () => {
+    clearAuthUser();
+    setAuthUser(null);
+    setCart(emptyCart);
+    setOrders([]);
+    reconnectSocket();
   };
 
   const updateCartItem = async (productId, quantity) => {
@@ -55,6 +108,11 @@ const ContextProvider = ({ children }) => {
   };
 
   useEffect(() => {
+    if (!isAuthenticated) {
+      setRealtimeStatus("disconnected");
+      return undefined;
+    }
+
     refreshCart();
     refreshOrders();
 
@@ -77,23 +135,25 @@ const ContextProvider = ({ children }) => {
       socket.off("order:created");
       socket.off("payment:completed");
     };
-  }, []);
+  }, [isAuthenticated]);
 
-  const value = useMemo(
-    () => ({
-      cart,
-      orders,
-      realtimeStatus,
-      cartCount: cart.items.reduce((total, item) => total + item.quantity, 0),
-      refreshCart,
-      refreshOrders,
-      addToCart,
-      updateCartItem,
-      removeCartItem,
-      placeOrder,
-    }),
-    [cart, orders, realtimeStatus]
-  );
+  const value = {
+    cart,
+    orders,
+    authUser,
+    isAuthenticated,
+    realtimeStatus,
+    cartCount: cart.items.reduce((total, item) => total + item.quantity, 0),
+    refreshCart,
+    refreshOrders,
+    addToCart,
+    queueCartItemAfterAuth,
+    loginOrSignup,
+    logout,
+    updateCartItem,
+    removeCartItem,
+    placeOrder,
+  };
 
   return <ContextApi.Provider value={value}>{children}</ContextApi.Provider>;
 };

@@ -5,7 +5,13 @@ import { ContextProvider } from "./context/contextApiProvider";
 
 jest.mock("./serviceApi/servicesApi", () => ({
   API_BASE_URL: "http://localhost:8080",
+  clearAuthUser: jest.fn(),
+  getAuthUser: () => null,
+  getAuthToken: () => null,
   getCustomerId: () => "test-customer",
+  saveAuthSession: jest.fn(),
+  loginFunction: jest.fn(),
+  signupFunction: jest.fn(),
   getProductsFunction: () =>
     Promise.resolve({
       data: {
@@ -38,6 +44,7 @@ jest.mock("./serviceApi/socketClient", () => ({
     on: jest.fn(),
     off: jest.fn(),
   }),
+  reconnectSocket: jest.fn(),
 }));
 
 test("renders product catalog route", async () => {

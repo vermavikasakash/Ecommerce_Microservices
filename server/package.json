@@ -10,8 +10,8 @@
     "cart-service": "nodemon services/cart/cart-service.js",
     "order-service": "nodemon services/order/order-service.js",
     "payment-service": "nodemon services/payment/payment-service.js",
-    "client": "npm start --prefix ../client",
-    "dev": "concurrently \"npm run gateway\" \"npm run product-service\" \"npm run cart-service\" \"npm run order-service\" \"npm run payment-service\" \"npm run client\""
+    "auth-service": "nodemon services/auth/auth-service.js",
+    "dev": "concurrently \"npm run gateway\" \"npm run product-service\" \"npm run cart-service\" \"npm run order-service\" \"npm run payment-service\" \"npm run auth-service\""
   },
   "keywords": [],
   "author": "",

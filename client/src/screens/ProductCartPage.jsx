@@ -1,12 +1,14 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Button, Form } from "react-bootstrap";
 import { FiMinus, FiPlus, FiTrash2 } from "react-icons/fi";
+import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import Layout from "../components/Layout/Layout";
 import { useGlobalData } from "../context/contextApiProvider";
 
 const ProductCartPage = () => {
-  const { cart, orders, updateCartItem, removeCartItem, placeOrder, realtimeStatus } =
+  const navigate = useNavigate();
+  const { cart, orders, updateCartItem, removeCartItem, placeOrder, realtimeStatus, isAuthenticated } =
     useGlobalData();
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -24,6 +26,12 @@ const ProductCartPage = () => {
       [name]: value,
     }));
   };
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      navigate("/auth", { replace: true, state: { from: "/cart" } });
+    }
+  }, [isAuthenticated, navigate]);
 
   const validate = () => {
     if (!cart.items.length) return "At least one product is required";

@@ -1,6 +1,7 @@
-const makeServiceRequest = async (baseUrl, method, path, body = null, customerId = null) => {
+const makeServiceRequest = async (baseUrl, method, path, body = null, customerId = null, extraHeaders = {}) => {
   const headers = {
     "content-type": "application/json",
+    ...extraHeaders,
   };
 
   if (customerId) {

@@ -4,6 +4,7 @@ const morgan = require("morgan");
 const { env } = require("../shared/config/env");
 const { customerContext } = require("../shared/middleware/customerContext");
 const { errorHandler } = require("../shared/middleware/errorHandler");
+const { authenticate } = require("../shared/middleware/authContext");
 const { makeServiceRequest } = require("../shared/utils/makeServiceRequest");
 const { asyncHandler } = require("../shared/utils/asyncHandler");
 
@@ -33,6 +34,27 @@ const createApp = () => {
     });
   });
 
+  // Auth routes
+  app.post("/api/auth/signup", asyncHandler(async (req, res) => {
+    const data = await makeServiceRequest(
+      env.serviceUrls.auth,
+      "POST",
+      "/api/auth/signup",
+      req.body
+    );
+    res.status(201).send(data);
+  }));
+
+  app.post("/api/auth/login", asyncHandler(async (req, res) => {
+    const data = await makeServiceRequest(
+      env.serviceUrls.auth,
+      "POST",
+      "/api/auth/login",
+      req.body
+    );
+    res.status(200).send(data);
+  }));
+
   // Route products requests to Product Service
   app.get("/api/products", asyncHandler(async (req, res) => {
     const data = await makeServiceRequest(
@@ -55,6 +77,8 @@ const createApp = () => {
     );
     res.status(200).send(data);
   }));
+
+  app.use(["/api/cart", "/api/orders", "/api/payments"], authenticate);
 
   // Route cart requests to Cart Service
   app.get("/api/cart", asyncHandler(async (req, res) => {

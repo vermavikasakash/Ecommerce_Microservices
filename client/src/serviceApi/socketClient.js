@@ -16,4 +16,13 @@ const getSocket = () => {
   return socket;
 };
 
-export { getSocket };
+const reconnectSocket = () => {
+  if (socket) {
+    socket.disconnect();
+    socket = null;
+  }
+
+  return getSocket();
+};
+
+export { getSocket, reconnectSocket };
