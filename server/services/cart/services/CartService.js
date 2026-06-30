@@ -79,6 +79,10 @@ class CartService {
 
   async clearCart(customerId) {
     const cart = await this.cartRepository.clear(customerId);
+    await publishRealtimeEvent("cart.updated", {
+      customerId: cart.customerId,
+      cart,
+    });
     return cart;
   }
 

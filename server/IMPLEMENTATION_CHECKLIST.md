@@ -38,10 +38,10 @@
 
 #### Payment Service (Port 8084)
 - [x] Created service structure
-- [x] Charge endpoint
+- [x] Razorpay order creation endpoint
+- [x] Razorpay payment verification endpoint
 - [x] Provider info endpoint
-- [x] DummyPaymentProvider for testing
-- [x] Ready for Razorpay/Stripe integration
+- [x] Razorpay integration
 
 ### API Gateway
 - [x] Routes to Product Service
@@ -101,6 +101,8 @@
 - [ ] Create order: `POST /api/orders`
 - [ ] List orders: `GET /api/orders`
 - [ ] Check payment provider: `GET /api/payments/provider`
+- [ ] Create Razorpay order: `POST /api/payments/razorpay/order`
+- [ ] Verify Razorpay payment: `POST /api/payments/razorpay/verify`
 
 ### Integration Testing
 - [ ] Cart can fetch products from Product Service
@@ -132,7 +134,7 @@ Order Service (8083) - depends on Cart & Payment Services
   └─ Clears cart
 
 Payment Service (8084) - independent
-  └─ Processes charges
+  └─ Creates and verifies Razorpay payments
 
 API Gateway (8080) - depends on all services
   └─ Routes requests

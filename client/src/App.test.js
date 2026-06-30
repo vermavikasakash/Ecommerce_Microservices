@@ -37,6 +37,8 @@ jest.mock("./serviceApi/servicesApi", () => ({
         orders: [],
       },
     }),
+  getRazorpayKeyFunction: jest.fn(),
+  createRazorpayOrderFunction: jest.fn(),
 }));
 
 jest.mock("./serviceApi/socketClient", () => ({

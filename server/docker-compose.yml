@@ -21,6 +21,9 @@ services:
       dockerfile: Dockerfile.gateway
     ports:
       - "8080:8080"
+    volumes:
+      - .:/app
+      - /app/node_modules
     environment:
       - PORT=8080
       - DEV_MODE=development
@@ -51,6 +54,9 @@ services:
       dockerfile: Dockerfile.product
     ports:
       - "8081:8081"
+    volumes:
+      - .:/app
+      - /app/node_modules  
     environment:
       - PORT=8081
       - DEV_MODE=development
@@ -69,12 +75,17 @@ services:
       dockerfile: Dockerfile.cart
     ports:
       - "8082:8082"
+    volumes:
+      - .:/app
+      - /app/node_modules  
     environment:
       - PORT=8082
       - DEV_MODE=development
       - PRODUCT_SERVICE_URL=http://product-service:8081
       - MONGODB_URI=mongodb://mongodb:27017/ecommerce
       - RABBITMQ_URL=amqp://rabbitmq:5672
+      - RAZORPAY_KEY_ID=${RAZORPAY_KEY_ID:-}
+      - RAZORPAY_KEY_SECRET=${RAZORPAY_KEY_SECRET:-}
     depends_on:
       - product-service
       - mongodb
@@ -91,6 +102,9 @@ services:
       dockerfile: Dockerfile.order
     ports:
       - "8083:8083"
+    volumes:
+      - .:/app
+      - /app/node_modules  
     environment:
       - PORT=8083
       - DEV_MODE=development
@@ -98,6 +112,8 @@ services:
       - PAYMENT_SERVICE_URL=http://payment-service:8084
       - MONGODB_URI=mongodb://mongodb:27017/ecommerce
       - RABBITMQ_URL=amqp://rabbitmq:5672
+      - RAZORPAY_KEY_ID=${RAZORPAY_KEY_ID:-}
+      - RAZORPAY_KEY_SECRET=${RAZORPAY_KEY_SECRET:-}
     depends_on:
       - cart-service
       - payment-service
@@ -115,11 +131,16 @@ services:
       dockerfile: Dockerfile.payment
     ports:
       - "8084:8084"
+    volumes:
+      - .:/app
+      - /app/node_modules  
     environment:
       - PORT=8084
       - DEV_MODE=development
       - MONGODB_URI=mongodb://mongodb:27017/ecommerce
       - RABBITMQ_URL=amqp://rabbitmq:5672
+      - RAZORPAY_KEY_ID=${RAZORPAY_KEY_ID:-}
+      - RAZORPAY_KEY_SECRET=${RAZORPAY_KEY_SECRET:-}
     depends_on:
       - mongodb
       - rabbitmq
@@ -135,6 +156,9 @@ services:
       dockerfile: Dockerfile.auth
     ports:
       - "8085:8085"
+    volumes:
+      - .:/app
+      - /app/node_modules  
     environment:
       - PORT=8085
       - DEV_MODE=development

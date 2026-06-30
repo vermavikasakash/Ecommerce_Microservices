@@ -104,6 +104,7 @@ const ContextProvider = ({ children }) => {
   const placeOrder = async (checkoutPayload) => {
     const result = await createOrderFunction(checkoutPayload);
     setOrders((currentOrders) => [result.data.order, ...currentOrders]);
+    setCart(emptyCart);
     return result.data.order;
   };
 

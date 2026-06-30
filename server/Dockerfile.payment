@@ -11,4 +11,4 @@ COPY services/shared ./services/shared
 
 EXPOSE 8084
 
-CMD ["node", "services/payment/payment-service.js"]
+CMD ["npx", "nodemon", "services/payment/payment-service.js"]

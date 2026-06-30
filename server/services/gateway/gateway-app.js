@@ -171,16 +171,26 @@ const createApp = () => {
     res.status(200).send(data);
   }));
 
-  app.post("/api/payments/charge", asyncHandler(async (req, res) => {
+  app.get("/api/payments/razorpay/key", asyncHandler(async (req, res) => {
+    const data = await makeServiceRequest(
+      env.serviceUrls.payments,
+      "GET",
+      "/api/payments/razorpay/key",
+      null,
+      req.customerId
+    );
+    res.status(200).send(data);
+  }));
+
+  app.post("/api/payments/razorpay/order", asyncHandler(async (req, res) => {
     const data = await makeServiceRequest(
       env.serviceUrls.payments,
       "POST",
-      "/api/payments/charge",
+      "/api/payments/razorpay/order",
       req.body,
       req.customerId
     );
-    // payment service may return 201 for razorpay order creation
-    res.status(data && data.order ? 201 : 200).send(data);
+    res.status(201).send(data);
   }));
 
   app.post("/api/payments/razorpay/verify", asyncHandler(async (req, res) => {

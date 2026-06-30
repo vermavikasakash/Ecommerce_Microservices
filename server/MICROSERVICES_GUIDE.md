@@ -80,17 +80,17 @@ API Gateway (Port 8080) - Central routing hub
 
 #### **Payment Service** (services/payment/)
 - **Port**: 8084
-- **Responsibility**: Process payments
+- **Responsibility**: Create and verify Razorpay payments
 - **Structure**:
-  - `services/PaymentService.js` - Payment processing logic
-  - `providers/DummyPaymentProvider.js` - Payment provider (currently mock)
   - `routes/paymentRoutes.js` - Express routes
 - **Endpoints**:
-  - `POST /api/payments/charge` - Process payment
+  - `GET /api/payments/razorpay/key` - Get Razorpay public key
+  - `POST /api/payments/razorpay/order` - Create Razorpay order
+  - `POST /api/payments/razorpay/verify` - Verify Razorpay payment signature
   - `GET /api/payments/provider` - Get provider info
 - **Special Features**:
-  - Easy to replace DummyPaymentProvider with Razorpay/Stripe
-  - Amount validation
+  - HMAC signature verification
+  - Razorpay order amount validation
 
 ### 3. Shared Utilities (services/shared/)
 
@@ -236,13 +236,13 @@ Client receives: { success: true, cart: {...} }
 
 ### Example 3: Create Order
 ```
-Client POST /api/orders { firstName, lastName, address, paymentMethod }
+Client POST /api/orders { firstName, lastName, address, razorpay }
   ↓
 Gateway (Port 8080)
   ↓
 Order Service (Port 8083)
   ├─ Calls Cart Service to get cart
-  ├─ Calls Payment Service to charge
+  ├─ Calls Payment Service to verify Razorpay payment
   ├─ Creates order in repository
   ├─ Calls Cart Service to clear cart
   └─ Returns order confirmation
@@ -316,14 +316,12 @@ Response:
 
 ```
 server/
-├── services/
 │   ├── gateway/
 │   │   ├── gateway.js
 │   │   └── gateway-app.js
 │   ├── product/
 │   │   ├── product-service.js
 │   │   ├── controllers/
-│   │   ├── services/
 │   │   ├── repositories/
 │   │   ├── routes/
 │   │   └── data/
@@ -341,8 +339,6 @@ server/
 │   │   └── routes/
 │   ├── payment/
 │   │   ├── payment-service.js
-│   │   ├── services/
-│   │   ├── providers/
 │   │   └── routes/
 │   ├── shared/
 │   │   ├── config/

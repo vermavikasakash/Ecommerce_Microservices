@@ -11,4 +11,4 @@ COPY services/shared ./services/shared
 
 EXPOSE 8081
 
-CMD ["node", "services/product/product-service.js"]
+CMD ["npx", "nodemon", "services/product/product-service.js"]

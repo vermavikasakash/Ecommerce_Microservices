@@ -11,4 +11,4 @@ COPY services/shared ./services/shared
 
 EXPOSE 8080
 
-CMD ["node", "services/gateway/gateway.js"]
+CMD ["npx", "nodemon", "services/gateway/gateway.js"]

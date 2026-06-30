@@ -69,6 +69,9 @@ const removeCartItemFunction = (productId) => apiClient.delete(`/cart/items/${pr
 const clearCartFunction = () => apiClient.delete("/cart");
 const createOrderFunction = (payload) => apiClient.post("/orders", payload);
 const getOrdersFunction = () => apiClient.get("/orders");
+const getRazorpayKeyFunction = () => apiClient.get("/payments/razorpay/key");
+const createRazorpayOrderFunction = (amount) =>
+  apiClient.post("/payments/razorpay/order", { amount });
 
 export {
   API_BASE_URL,
@@ -87,4 +90,6 @@ export {
   clearCartFunction,
   createOrderFunction,
   getOrdersFunction,
+  getRazorpayKeyFunction,
+  createRazorpayOrderFunction,
 };

@@ -11,4 +11,4 @@ COPY services/shared ./services/shared
 
 EXPOSE 8085
 
-CMD ["node", "services/auth/auth-service.js"]
+CMD ["npx", "nodemon", "services/auth/auth-service.js"]

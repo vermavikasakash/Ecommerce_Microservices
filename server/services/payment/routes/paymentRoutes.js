@@ -1,53 +1,134 @@
 const express = require("express");
 const { asyncHandler } = require("../../shared/utils/asyncHandler");
-const { DummyPaymentProvider } = require("../providers/DummyPaymentProvider");
-const { PaymentService } = require("../services/PaymentService");
-const { publishRealtimeEvent } = require("../../shared/utils/realtimePublisher");
-const Razorpay = require('razorpay');
+const {
+  publishRealtimeEvent,
+} = require("../../shared/utils/realtimePublisher");
 
-const paymentService = new PaymentService(new DummyPaymentProvider());
+const Razorpay = require("razorpay");
 
 const paymentRouter = express.Router();
 
-paymentRouter.post("/charge", asyncHandler(async (req, res) => {
-  const { amount, customer, method } = req.body;
+const isRazorpayConfigured = () =>
+  Boolean(process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET);
 
-  if (process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET) {
-    const razor = new Razorpay({ key_id: process.env.RAZORPAY_KEY_ID, key_secret: process.env.RAZORPAY_KEY_SECRET });
-    const order = await razor.orders.create({ amount: Math.round(amount * 100), currency: 'INR', receipt: `receipt_${Date.now()}` });
-    return res.status(201).send({ success: true, order });
+const getRazorpayClient = () => {
+  if (!isRazorpayConfigured()) {
+    const error = new Error("Razorpay is not configured");
+    error.statusCode = 500;
+    throw error;
   }
 
-  const payment = await paymentService.collectPayment({ amount, customer, method });
-
-  const payload = { customerId: customer.customerId, orderId: null, payment };
-  publishRealtimeEvent('payment.completed', payload);
-
-  res.status(200).send({ success: true, message: 'Payment processed successfully', payment });
-}));
+  return new Razorpay({
+    key_id: process.env.RAZORPAY_KEY_ID,
+    key_secret: process.env.RAZORPAY_KEY_SECRET,
+  });
+};
 
 paymentRouter.get("/provider", (req, res) => {
-  res.status(200).send({ success: true, provider: process.env.RAZORPAY_KEY_ID ? 'razorpay' : 'dummy', message: process.env.RAZORPAY_KEY_ID ? 'Razorpay enabled' : 'Dummy provider active' });
+  res
+    .status(200)
+    .send({
+      success: true,
+      provider: "razorpay",
+      configured: isRazorpayConfigured(),
+      message: process.env.RAZORPAY_KEY_ID
+        ? "Razorpay enabled"
+        : "Razorpay key id is not configured",
+      keyId: process.env.RAZORPAY_KEY_ID || null,
+    });
 });
 
-paymentRouter.post('/razorpay/verify', (req, res) => {
-  const crypto = require('crypto');
-  const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
+paymentRouter.get("/razorpay/key", (req, res) => {
+  if (!process.env.RAZORPAY_KEY_ID) {
+    return res.status(500).send({
+      success: false,
+      message: "Razorpay key id is not configured",
+    });
+  }
+
+  return res.status(200).send({
+    success: true,
+    key: process.env.RAZORPAY_KEY_ID,
+  });
+});
+
+paymentRouter.post(
+  "/razorpay/order",
+  asyncHandler(async (req, res) => {
+    const amount = Number(req.body.amount);
+
+    if (!Number.isFinite(amount) || amount < 1) {
+      return res.status(400).send({
+        success: false,
+        message: "Amount must be at least INR 1",
+      });
+    }
+
+    const razor = getRazorpayClient();
+    const order = await razor.orders.create({
+      amount: Math.round(amount * 100),
+      currency: "INR",
+      receipt: `receipt_${Date.now()}`,
+    });
+
+    res.status(201).send({ success: true, order });
+  })
+);
+
+paymentRouter.post("/razorpay/verify", asyncHandler(async (req, res) => {
+  const crypto = require("crypto");
+  const { razorpay_order_id, razorpay_payment_id, razorpay_signature, amount } =
+    req.body;
 
   if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
-    return res.status(400).json({ error: 'Missing payment verification fields' });
+    return res
+      .status(400)
+      .json({ error: "Missing payment verification fields" });
   }
 
-  const expectedSignature = crypto.createHmac('sha256', process.env.RAZORPAY_KEY_SECRET).update(`${razorpay_order_id}|${razorpay_payment_id}`).digest('hex');
+  const razor = getRazorpayClient();
+  const expectedSignature = crypto
+    .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
+    .update(`${razorpay_order_id}|${razorpay_payment_id}`)
+    .digest("hex");
 
   if (expectedSignature !== razorpay_signature) {
-    return res.status(400).json({ verified: false, error: 'Invalid payment signature' });
+    return res
+      .status(400)
+      .json({ verified: false, error: "Invalid payment signature" });
   }
 
-  const payload = { customerId: req.header('x-customer-id') || 'guest-customer', orderId: razorpay_order_id, payment: { id: razorpay_payment_id } };
-  publishRealtimeEvent('payment.completed', payload);
+  if (amount) {
+    const razorpayOrder = await razor.orders.fetch(razorpay_order_id);
+    const expectedAmount = Math.round(Number(amount) * 100);
 
-  res.json({ verified: true, paymentId: razorpay_payment_id, orderId: razorpay_order_id });
-});
+    if (razorpayOrder.amount !== expectedAmount) {
+      return res.status(400).json({
+        verified: false,
+        error: "Payment amount does not match the order total",
+      });
+    }
+  }
 
-module.exports = { paymentRouter, paymentService };
+  const payload = {
+    customerId: req.header("x-customer-id") || "guest-customer",
+    orderId: razorpay_order_id,
+    payment: {
+      provider: "razorpay",
+      paymentId: razorpay_payment_id,
+      razorpayOrderId: razorpay_order_id,
+      status: "captured",
+      amount: amount ? Number(amount) : undefined,
+      method: "razorpay",
+    },
+  };
+  publishRealtimeEvent("payment.completed", payload);
+
+  res.json({
+    success: true,
+    verified: true,
+    payment: payload.payment,
+  });
+}));
+
+module.exports = { paymentRouter };

@@ -30,19 +30,13 @@ class OrderService {
       throw error;
     }
 
-    // Create payment through payment service
     const paymentData = await makeServiceRequest(
       env.serviceUrls.payments,
       "POST",
-      `/api/payments/charge`,
+      `/api/payments/razorpay/verify`,
       {
+        ...checkout.razorpay,
         amount: cart.total,
-        method: checkout.paymentMethod,
-        customer: {
-          customerId,
-          firstName: checkout.firstName,
-          lastName: checkout.lastName,
-        },
       },
       customerId
     );
@@ -86,6 +80,12 @@ class OrderService {
 
     if (missingField) {
       const error = new Error(`${missingField} is required`);
+      error.statusCode = 400;
+      throw error;
+    }
+
+    if (!checkout.razorpay) {
+      const error = new Error("Razorpay payment verification details are required");
       error.statusCode = 400;
       throw error;
     }

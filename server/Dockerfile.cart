@@ -11,4 +11,4 @@ COPY services/shared ./services/shared
 
 EXPOSE 8082
 
-CMD ["node", "services/cart/cart-service.js"]
+CMD ["npx", "nodemon", "services/cart/cart-service.js"]

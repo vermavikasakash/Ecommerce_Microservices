@@ -5,19 +5,82 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import Layout from "../components/Layout/Layout";
 import { useGlobalData } from "../context/contextApiProvider";
+import {
+  createRazorpayOrderFunction,
+  getRazorpayKeyFunction,
+} from "../serviceApi/servicesApi";
+
+const loadRazorpayScript = () =>
+  new Promise((resolve, reject) => {
+    if (window.Razorpay) {
+      resolve();
+      return;
+    }
+
+    const script = document.createElement("script");
+    script.src = "https://checkout.razorpay.com/v1/checkout.js";
+    script.onload = resolve;
+    script.onerror = () => reject(new Error("Razorpay checkout failed to load"));
+    document.body.appendChild(script);
+  });
 
 const ProductCartPage = () => {
   const navigate = useNavigate();
-  const { cart, orders, updateCartItem, removeCartItem, placeOrder, realtimeStatus, isAuthenticated } =
-    useGlobalData();
+  const {
+    cart,
+    orders,
+    updateCartItem,
+    removeCartItem,
+    placeOrder,
+    realtimeStatus,
+    isAuthenticated,
+    authUser,
+  } = useGlobalData();
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
     address: "",
-    paymentMethod: "dummy-card",
   });
+
+  const collectRazorpayPayment = async () => {
+    await loadRazorpayScript();
+
+    const [keyResult, orderResult] = await Promise.all([
+      getRazorpayKeyFunction(),
+      createRazorpayOrderFunction(cart.total),
+    ]);
+
+    const key = keyResult.data.key;
+    const razorpayOrder = orderResult.data.order;
+
+    return new Promise((resolve, reject) => {
+      const checkout = new window.Razorpay({
+        key,
+        amount: razorpayOrder.amount,
+        currency: razorpayOrder.currency,
+        name: "Commerce Mesh",
+        description: "Order payment",
+        order_id: razorpayOrder.id,
+        prefill: {
+          name: `${formData.firstName} ${formData.lastName}`.trim(),
+          email: authUser?.email || "",
+        },
+        handler: (response) => resolve(response),
+        theme: { color: "#0f5ea8" },
+        modal: {
+          ondismiss: () => reject(new Error("Payment was cancelled")),
+        },
+      });
+
+      checkout.on("payment.failed", (response) => {
+        reject(new Error(response.error?.description || "Payment failed"));
+      });
+
+      checkout.open();
+    });
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -49,16 +112,19 @@ const ProductCartPage = () => {
 
     try {
       setIsSubmitting(true);
-      const order = await placeOrder(formData);
+      const razorpay = await collectRazorpayPayment();
+      const order = await placeOrder({
+        ...formData,
+        razorpay,
+      });
       toast.success(`Order ${order.id} confirmed`);
       setFormData({
         firstName: "",
         lastName: "",
         address: "",
-        paymentMethod: "dummy-card",
       });
     } catch (err) {
-      setError(err.response?.data?.message || "Unable to place order");
+      setError(err.response?.data?.message || err.message || "Unable to place order");
     } finally {
       setIsSubmitting(false);
     }
@@ -153,20 +219,8 @@ const ProductCartPage = () => {
                 onChange={handleChange}
               />
             </Form.Group>
-            <Form.Group className="mb-3">
-              <Form.Label>Payment Method</Form.Label>
-              <Form.Select
-                name="paymentMethod"
-                value={formData.paymentMethod}
-                onChange={handleChange}
-              >
-                <option value="dummy-card">Dummy card success</option>
-                <option value="dummy-upi">Dummy UPI success</option>
-                <option value="fail">Dummy failure test</option>
-              </Form.Select>
-            </Form.Group>
             <Button type="submit" disabled={isSubmitting || !cart.items.length}>
-              {isSubmitting ? "Placing order..." : "Place Order"}
+              {isSubmitting ? "Opening payment..." : "Pay with Razorpay"}
             </Button>
             {error && <p className="form-error">{error}</p>}
           </Form>

@@ -37,10 +37,11 @@ This project has been converted into a distributed microservices architecture wi
 - File: `services/order/order-service.js`
 
 ### 5. **Payment Service** (Port 8084)
-- Processes payments
-- Currently uses DummyPaymentProvider (mock)
+- Processes Razorpay payments
 - Endpoints:
-  - `POST /api/payments/charge` - Process payment
+  - `GET /api/payments/razorpay/key` - Get Razorpay public key
+  - `POST /api/payments/razorpay/order` - Create Razorpay order
+  - `POST /api/payments/razorpay/verify` - Verify Razorpay payment signature
   - `GET /api/payments/provider` - Get payment provider info
 - File: `services/payment/payment-service.js`
 
@@ -52,7 +53,6 @@ This project has been converted into a distributed microservices architecture wi
 - **Reverse Proxy**: Docker Compose includes nginx in front of the API Gateway
 - **Customer Context**: Each request includes `x-customer-id` header for multi-tenant support
 - **Error Handling**: Centralized error handler for consistent error responses
-- **Shared Utilities**: Common middleware, configs, and utilities in `services/shared/`
 - **MVC Pattern**: Each service follows Models-Views-Controllers pattern with services and repositories
 
 ## Installation
@@ -134,14 +134,12 @@ PAYMENT_SERVICE_PORT=8084
 
 ```
 server/
-├── services/
 │   ├── gateway/              # API Gateway
 │   │   ├── gateway.js
 │   │   └── gateway-app.js
 │   ├── product/              # Product Service
 │   │   ├── product-service.js
 │   │   ├── controllers/
-│   │   ├── services/
 │   │   ├── repositories/
 │   │   ├── routes/
 │   │   └── data/
@@ -159,8 +157,6 @@ server/
 │   │   └── routes/
 │   ├── payment/              # Payment Service
 │   │   ├── payment-service.js
-│   │   ├── services/
-│   │   ├── providers/
 │   │   └── routes/
 │   └── shared/               # Shared utilities and middleware
 │       ├── config/
@@ -181,7 +177,8 @@ server/
    - Gateway routes to Order Service
    - Order Service requests cart from Cart Service
    - Cart Service validates products with Product Service
-   - Order Service processes payment via Payment Service
+   - Frontend completes Razorpay Checkout
+   - Order Service verifies Razorpay payment via Payment Service
    - Order Service returns confirmed order to Gateway
    - Gateway returns response to Client
 

@@ -144,7 +144,7 @@ API Gateway (Port 8080)
   ↓
 Order Service (Port 8083)
   ├─ Calls Cart Service for items
-  ├─ Calls Payment Service to charge
+  ├─ Calls Payment Service to verify Razorpay payment
   ├─ Creates order record
   ├─ Calls Cart Service to clear cart
   └─ Returns order confirmation
